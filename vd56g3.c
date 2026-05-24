@@ -67,7 +67,7 @@ struct vd56g3_cam {
 #define MEGA			1000000UL
 
 static const uint8_t s_vd56g3_exp_min = 0x05;
-static const uint32_t s_vd56g3_limited_gain_ = CONFIG_CAMERA_VD56G3_ABSOLUTE_GAIN_LIMIT;
+static const uint32_t s_vd56g3_limited_gain_ = 0xffff;
 static size_t s_vd56g3_limited_gain_index;
 
 static const char *TAG = "vd56g3";
