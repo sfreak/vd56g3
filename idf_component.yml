@@ -1,0 +1,3 @@
+version: "0.0.1"
+description: "Driver for ST VD56G3 image sensor"
+url: "https://github.com/sfreak/vd56g3"
