@@ -67,7 +67,7 @@ struct vd56g3_cam {
 #define MEGA			1000000UL
 
 static const uint8_t s_vd56g3_exp_min = 0x05;
-static const uint32_t s_vd56g3_limited_gain_ = 0xffff;
+static const uint32_t s_vd56g3_limited_gain_ = 200;
 static size_t s_vd56g3_limited_gain_index;
 
 static const char *TAG = "vd56g3";
@@ -102,14 +102,14 @@ static const uint8_t vd56g3_gain_reg_map[] = {
 
 static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
     {
-        // MIPI_2lane_12Minput_RAW10_1120x1360_60fps
+        // MIPI_2lane_12Minput_RAW10_1120x1360_8fps
         .isp_v1_info = {
             .version = SENSOR_ISP_INFO_VERSION_DEFAULT,
             .pclk = 160800000,
             .hts = 1236,
             .vts = 1476,
-            .tline_ns = 7700,  // From config file: TLine: 10.1us
-            .gain_def = 8,      // Calculated from VD56G3_GAIN_DEFAULT
+            .tline_ns = 7700, 
+            .gain_def = 8,    
             .exp_def = 0x2a9,
             .bayer_type = ESP_CAM_SENSOR_BAYER_BGGR,
         }
@@ -145,7 +145,7 @@ static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
 
 static const esp_cam_sensor_format_t vd56g3_format_info[] = {
     {
-        .name = "MIPI_2lane_12Minput_RAW10_1120x1360_88fps",
+        .name = "MIPI_2lane_12Minput_RAW10_1120x1360_8fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW10,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -153,7 +153,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 1360,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 88,
+        .fps = 8,
         .isp_info = &vd56g3_isp_info[0],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -163,7 +163,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .reserved = NULL,
     },
     {
-        .name = "MIPI_2lane_12Minput_RAW8_1120x1360_88fps",
+        .name = "MIPI_2lane_12Minput_RAW8_1120x1360_8fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW8,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -171,7 +171,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 1360,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 88,
+        .fps = 8,
         .isp_info = &vd56g3_isp_info[1],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -181,7 +181,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .reserved = NULL,
     },
     {
-        .name = "MIPI_2lane_12Minput_RAW8_480x640_88fps",
+        .name = "MIPI_2lane_12Minput_RAW8_480x640_8fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW8,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -189,7 +189,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 640,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 88*2,
+        .fps = 8,
         .isp_info = &vd56g3_isp_info[2],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -231,6 +231,8 @@ static esp_err_t vd56g3_read(esp_sccb_io_handle_t sccb_handle, uint32_t reg, uin
         break;
     }
 
+    //ESP_LOGI(TAG, "vd56g3_read 0x%04x 0x%04x", reg, *read_buf);
+
     return err;
 }
 
@@ -240,6 +242,8 @@ static esp_err_t vd56g3_write(esp_sccb_io_handle_t sccb_handle, uint32_t reg, ui
     unsigned int len = (reg >> CCI_REG_WIDTH_SHIFT) & 7;
 
     reg = reg & CCI_REG_ADDR_MASK;
+
+    //ESP_LOGI(TAG, "vd56g3_write 0x%04x 0x%04x", reg, data);
 
 	switch (len) {
 	case 1:
@@ -568,10 +572,38 @@ static esp_err_t vd56g3_set_stream(esp_cam_sensor_device_t *dev, int enable)
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_ROI_START_V, 0));
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_ROI_END_V, crop_height - 1));
 
-        /* Setup default GPIO values; could be overridden by V4L2 ctrl setup */
-        //ret = vd56g3_write_gpiox(sensor, GENMASK(VD56G3_NB_GPIOS - 1, 0));
-        //if (ret)
-        //    return ret;
+        // set all GPIOs to input
+        for (int i=0; i<VD56G3_NB_GPIOS; i++)
+        {
+            ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_GPIO_0_CTRL+i, VD56G3_GPIOX_GPIO_IN));
+        }
+
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_ORIENTATION, 0));
+
+        // FIXME: calculate for desired frame rate
+        //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 16262));
+        //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 5000));
+
+        // logged from linux driver:
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DUSTER_CTRL                   , 0x0013));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DARKCAL_CTRL                  , 0x0001));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_PATGEN_CTRL                   , 0x0000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_EXP_MODE                      , 0x0000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COLDSTART_COARSE_EXPOSURE  , 0x058c));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COLDSTART_ANALOG_GAIN      , 0x0000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COLDSTART_DIGITAL_GAIN     , 0x0100));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_EXP_MODE                      , 0x0000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COMPENSATION               , 0x0000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH                  , 0x3f86)); // 8 fps
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_TARGET_PERCENTAGE          , 0x001e));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_STEP_PROPORTION            , 0x008c));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_LEAK_PROPORTION            , 0x2ccc));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DARKCAL_PEDESTAL              , 0x0040));
+
+
+        // disable mipi clock output between frames
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DPHYTX_CTRL, VD56G3_DPHYTX_CONTMODE_DIS));
+
 
         /* start streaming */
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_STBY, VD56G3_CMD_START_STREAM));
@@ -908,6 +940,7 @@ static esp_err_t vd56g3_set_format(esp_cam_sensor_device_t *dev, const esp_cam_s
 
 	//cam_vd56g3->vd56g3_para.oif_ctrl = cam_vd56g3->vd56g3_para.nb_of_lane | 0x2c8;
     
+    // on the S-board (STEVAL-56G3MAI), P and N of the mipi data and clock lanes are swapped
     uint8_t clklane_swap = 1;
     uint8_t datalane0_mapping = 0;
     uint8_t datalane0_swap = 1;

@@ -157,6 +157,9 @@ extern "C" {
 #define READOUT_NORMAL					        0x00
 #define READOUT_DIGITAL_BINNING_X2			    0x01
 
+#define VD56G3_REG_DPHYTX_CTRL                  CCI_REG8(0x0956)
+#define VD56G3_DPHYTX_CONTMODE_EN               0x1C
+#define VD56G3_DPHYTX_CONTMODE_DIS              0x0C
 
 #ifdef __cplusplus
 }
