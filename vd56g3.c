@@ -102,7 +102,7 @@ static const uint8_t vd56g3_gain_reg_map[] = {
 
 static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
     {
-        // MIPI_2lane_12Minput_RAW10_1120x1360_8fps
+        // MIPI_2lane_12Minput_RAW10_1120x1360_88fps
         .isp_v1_info = {
             .version = SENSOR_ISP_INFO_VERSION_DEFAULT,
             .pclk = 160800000,
@@ -115,7 +115,7 @@ static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
         }
     },
     {
-        // MIPI_2lane_12Minput_RAW8_1120x1360_60fps
+        // MIPI_2lane_12Minput_RAW8_1120x1360_88fps
         .isp_v1_info = {
             .version = SENSOR_ISP_INFO_VERSION_DEFAULT,
             .pclk = 160800000,
@@ -128,7 +128,7 @@ static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
         }
     },
     {
-        // MIPI_2lane_12Minput_RAW8_480x640_60fps (cropped on sensor side)
+        // MIPI_2lane_12Minput_RAW8_480x640_88fps (cropped on sensor side)
         .isp_v1_info = {
             .version = SENSOR_ISP_INFO_VERSION_DEFAULT,
             .pclk = 160800000,
@@ -145,7 +145,7 @@ static const esp_cam_sensor_isp_info_t vd56g3_isp_info[] = {
 
 static const esp_cam_sensor_format_t vd56g3_format_info[] = {
     {
-        .name = "MIPI_2lane_12Minput_RAW10_1120x1360_8fps",
+        .name = "MIPI_2lane_12Minput_RAW10_1120x1360_88fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW10,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -153,7 +153,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 1360,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 8,
+        .fps = 88,
         .isp_info = &vd56g3_isp_info[0],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -163,7 +163,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .reserved = NULL,
     },
     {
-        .name = "MIPI_2lane_12Minput_RAW8_1120x1360_8fps",
+        .name = "MIPI_2lane_12Minput_RAW8_1120x1360_88fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW8,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -171,7 +171,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 1360,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 8,
+        .fps = 88,
         .isp_info = &vd56g3_isp_info[1],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -181,7 +181,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .reserved = NULL,
     },
     {
-        .name = "MIPI_2lane_12Minput_RAW8_480x640_8fps",
+        .name = "MIPI_2lane_12Minput_RAW8_480x640_88fps",
         .format = ESP_CAM_SENSOR_PIXFORMAT_RAW8,
         .port = ESP_CAM_SENSOR_MIPI_CSI,
         .xclk = 12000000,
@@ -189,7 +189,7 @@ static const esp_cam_sensor_format_t vd56g3_format_info[] = {
         .height = 640,
         .regs = NULL,
         .regs_size = 0,
-        .fps = 8,
+        .fps = 88,
         .isp_info = &vd56g3_isp_info[2],
         .mipi_info = {
             .mipi_clk = VD56G3_LINK_FREQ_DEF_2LANES,
@@ -581,8 +581,9 @@ static esp_err_t vd56g3_set_stream(esp_cam_sensor_device_t *dev, int enable)
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_ORIENTATION, 0));
 
         // FIXME: calculate for desired frame rate
-        //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 16262));
+        //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 16262)); // 8 fps
         //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 5000));
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH, 1476)); // 88 fps
 
         // logged from linux driver:
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DUSTER_CTRL                   , 0x0013));
@@ -594,7 +595,7 @@ static esp_err_t vd56g3_set_stream(esp_cam_sensor_device_t *dev, int enable)
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COLDSTART_DIGITAL_GAIN     , 0x0100));
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_EXP_MODE                      , 0x0000));
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_COMPENSATION               , 0x0000));
-        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH                  , 0x3f86)); // 8 fps
+        //ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_FRAME_LENGTH                  , 0x3f86)); // 8 fps
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_TARGET_PERCENTAGE          , 0x001e));
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_STEP_PROPORTION            , 0x008c));
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_AE_LEAK_PROPORTION            , 0x2ccc));
@@ -602,8 +603,13 @@ static esp_err_t vd56g3_set_stream(esp_cam_sensor_device_t *dev, int enable)
 
 
         // disable mipi clock output between frames
+        // ESP32P4 only recogniced a mipi clock in non-continuouc clock mode
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_DPHYTX_CTRL, VD56G3_DPHYTX_CONTMODE_DIS));
 
+        uint32_t sync_mode; // 0x0: master, 0x2: i2c follower
+        sync_mode = 2;
+        ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_VT_CTRL, sync_mode));
+        
 
         /* start streaming */
         ESP_ERROR_CHECK(vd56g3_write(sccb, VD56G3_REG_STBY, VD56G3_CMD_START_STREAM));
@@ -979,9 +985,7 @@ static esp_err_t vd56g3_get_format(esp_cam_sensor_device_t *dev, esp_cam_sensor_
 static esp_err_t vd56g3_priv_ioctl(esp_cam_sensor_device_t *dev, uint32_t cmd, void *arg)
 {
     esp_err_t ret = ESP_OK;
-#if 0
-    uint8_t regval;
-#endif
+    uint32_t regval;
     esp_cam_sensor_reg_val_t *sensor_reg;
     VD56G3_IO_MUX_LOCK(mux);
 
@@ -995,8 +999,8 @@ static esp_err_t vd56g3_priv_ioctl(esp_cam_sensor_device_t *dev, uint32_t cmd, v
         ret = vd56g3_soft_reset(dev);
         break;
     case ESP_CAM_SENSOR_IOC_S_REG:
-        ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_S_REG");
         sensor_reg = (esp_cam_sensor_reg_val_t *)arg;
+        ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_S_REG 0x%06x 0x%04x", sensor_reg->regaddr, sensor_reg->value);
         ret = vd56g3_write(dev->sccb_handle, sensor_reg->regaddr, sensor_reg->value);
         break;
     case ESP_CAM_SENSOR_IOC_S_STREAM:
@@ -1008,14 +1012,12 @@ static esp_err_t vd56g3_priv_ioctl(esp_cam_sensor_device_t *dev, uint32_t cmd, v
         ret = vd56g3_set_test_pattern(dev, *(int *)arg);
         break;
     case ESP_CAM_SENSOR_IOC_G_REG:
-        ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_G_REG");
-#if 0
         sensor_reg = (esp_cam_sensor_reg_val_t *)arg;
         ret = vd56g3_read(dev->sccb_handle, sensor_reg->regaddr, &regval);
         if (ret == ESP_OK) {
             sensor_reg->value = regval;
         }
-#endif
+        ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_G_REG 0x%06x 0x%04x", sensor_reg->regaddr, sensor_reg->value);
         break;
     case ESP_CAM_SENSOR_IOC_G_CHIP_ID:
         ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_G_CHIP_ID");
