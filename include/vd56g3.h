@@ -12,12 +12,9 @@ extern "C" {
 #include "esp_cam_sensor_types.h"
 #include "vd56g3_types.h"
 
-
 #define VD56G3_SCCB_ADDR   0x10
 #define VD56G3_PID         0x5600
 #define VD56G3_SENSOR_NAME "VD56G3"
-
-void vd56g3_testlog(void);
 
 /**
  * @brief Power on camera sensor device and detect the device connected to the designated sccb bus.

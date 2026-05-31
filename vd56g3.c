@@ -331,8 +331,9 @@ static esp_err_t vd56g3_wait_state(esp_sccb_io_handle_t sccb_handle, int state)
 
 static esp_err_t vd56g3_set_test_pattern(esp_cam_sensor_device_t *dev, int enable)
 {
-    //return vd56g3_set_reg_bits(dev->sccb_handle, VD56G3_REG_TEST_PATTERN, 7, 1,  enable ? 0x01 : 0x00);
-    return ESP_FAIL;
+    uint32_t pat_type = 0x12; // diagonal gray scale
+    uint32_t patgen_ctrl = (enable?0x01:0x00) | pat_type<<VD56G3_PATGEN_TYPE_SHIFT;
+    return vd56g3_write(dev->sccb_handle, VD56G3_REG_PATGEN_CTRL, patgen_ctrl);
 }
 
 static esp_err_t vd56g3_hw_reset(esp_cam_sensor_device_t *dev)
@@ -344,14 +345,6 @@ static esp_err_t vd56g3_hw_reset(esp_cam_sensor_device_t *dev)
         delay_ms(10);
     }
     return ESP_OK;
-}
-
-static esp_err_t vd56g3_soft_reset(esp_cam_sensor_device_t *dev)
-{
-    //esp_err_t ret = vd56g3_write(dev->sccb_handle, VD56G3_REG_SW_RESET, 0x01);
-    //delay_ms(5);
-    //return ret;
-    return ESP_FAIL;
 }
 
 static esp_err_t vd56g3_boot(esp_cam_sensor_device_t *dev)
@@ -932,18 +925,8 @@ static esp_err_t vd56g3_set_format(esp_cam_sensor_device_t *dev, const esp_cam_s
 
     ESP_LOGI(TAG, "vd56g3_set_format %s", format->name);
 
-    //ret = vd56g3_write_array(dev->sccb_handle, (vd56g3_reginfo_t *)format->regs);
-    ESP_LOGD(TAG, "%s", format->name);
-
-    // FIXME
-    // this should set the crop values to tell the sensor how much of the native resolution to output
-
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Set format regs fail");
-        return ESP_CAM_SENSOR_ERR_FAILED_SET_FORMAT;
-    }
-
     dev->cur_format = format;
+
     // init para
     cam_vd56g3->vd56g3_para.exposure_val = dev->cur_format->isp_info->isp_v1_info.exp_def;
     cam_vd56g3->vd56g3_para.gain_index = dev->cur_format->isp_info->isp_v1_info.gain_def;
@@ -952,17 +935,6 @@ static esp_err_t vd56g3_set_format(esp_cam_sensor_device_t *dev, const esp_cam_s
     cam_vd56g3->vd56g3_para.nb_of_lane = dev->cur_format->mipi_info.lane_num;
     ESP_LOGI(TAG, "%d mipi lanes", cam_vd56g3->vd56g3_para.nb_of_lane);
 
-    /*
-	sensor->oif_ctrl = n_lanes |
-			   (ep.bus.mipi_csi2.lane_polarities[0] << 3) |
-			   ((phy_data_lanes[0]) << 4) |
-			   (ep.bus.mipi_csi2.lane_polarities[1] << 6) |
-			   ((phy_data_lanes[1]) << 7) |
-			   (ep.bus.mipi_csi2.lane_polarities[2] << 9); 
-    */
-
-	//cam_vd56g3->vd56g3_para.oif_ctrl = cam_vd56g3->vd56g3_para.nb_of_lane | 0x2c8;
-    
     // on the S-board (STEVAL-56G3MAI), P and N of the mipi data and clock lanes are swapped
     uint8_t clklane_swap = 1;
     uint8_t datalane0_mapping = 0;
@@ -982,6 +954,10 @@ static esp_err_t vd56g3_set_format(esp_cam_sensor_device_t *dev, const esp_cam_s
 
     ret = vd56g3_prepare_clock_tree(dev);
 
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Set format regs fail");
+        return ESP_CAM_SENSOR_ERR_FAILED_SET_FORMAT;
+    }
     return ret;
 }
 
@@ -1013,7 +989,7 @@ static esp_err_t vd56g3_priv_ioctl(esp_cam_sensor_device_t *dev, uint32_t cmd, v
         break;
     case ESP_CAM_SENSOR_IOC_SW_RESET:
         ESP_LOGI(TAG, "ESP_CAM_SENSOR_IOC_SW_RESET");
-        ret = vd56g3_soft_reset(dev);
+        ret = ESP_ERR_NOT_SUPPORTED;
         break;
     case ESP_CAM_SENSOR_IOC_S_REG:
         sensor_reg = (esp_cam_sensor_reg_val_t *)arg;
@@ -1261,11 +1237,6 @@ err_free_handler:
     free(dev);
 
     return NULL;
-}
-
-void vd56g3_testlog(void)
-{
-    ESP_LOGW(TAG, "vd56g3 library linked correctly");
 }
 
 #if CONFIG_CAMERA_VD56G3_AUTO_DETECT_MIPI_INTERFACE_SENSOR
