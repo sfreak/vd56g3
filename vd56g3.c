@@ -285,8 +285,8 @@ static esp_err_t vd56g3_write_array(esp_sccb_io_handle_t sccb_handle, vd56g3_reg
 }
     #endif
 
-#if 0
-static esp_err_t vd56g3_set_reg_bits(esp_sccb_io_handle_t sccb_handle, uint16_t reg, uint8_t offset, uint8_t length, uint8_t value)
+static esp_err_t vd56g3_set_reg_bits(esp_sccb_io_handle_t sccb_handle, uint32_t reg, 
+    uint8_t offset, uint8_t length, uint32_t value)
 {
     esp_err_t ret = ESP_OK;
     uint32_t reg_data = 0;
@@ -300,7 +300,6 @@ static esp_err_t vd56g3_set_reg_bits(esp_sccb_io_handle_t sccb_handle, uint16_t 
     ret = vd56g3_write(sccb_handle, reg, value);
     return ret;
 }
-#endif
 
 static esp_err_t vd56g3_poll_reg(esp_sccb_io_handle_t sccb_handle, uint32_t reg, uint32_t poll_val)
 {
@@ -678,14 +677,12 @@ static esp_err_t vd56g3_set_stream(esp_cam_sensor_device_t *dev, int enable)
 
 static esp_err_t vd56g3_set_mirror(esp_cam_sensor_device_t *dev, int enable)
 {
-    //return vd56g3_set_reg_bits(dev->sccb_handle, 0x3820, 2, 1,  enable ? 0x01 : 0x00);
-    return ESP_FAIL;
+    return vd56g3_set_reg_bits(dev->sccb_handle, VD56G3_REG_ORIENTATION, 0, 1,  enable ? 0x01 : 0x00);
 }
 
 static esp_err_t vd56g3_set_vflip(esp_cam_sensor_device_t *dev, int enable)
 {
-    //return vd56g3_set_reg_bits(dev->sccb_handle, 0x3821, 2, 1,  enable ? 0x01 : 0x00);
-    return ESP_FAIL;
+    return vd56g3_set_reg_bits(dev->sccb_handle, VD56G3_REG_ORIENTATION, 1, 1,  enable ? 0x01 : 0x00);
 }
 
 static esp_err_t vd56g3_set_exp_val(esp_cam_sensor_device_t *dev, uint32_t u32_val)
